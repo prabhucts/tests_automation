@@ -1,0 +1,125 @@
+import os
+from docx import Document
+import gradio as gr
+from langchain.llms import OpenAI
+from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
+from dotenv import load_dotenv
+
+_____________________________________
+# Load environment variables in a file called .env
+# Print the key prefixes to help with any debugging
+
+load_dotenv()
+openai_api_key = os.getenv('OPENAI_API_KEY')
+#anthropic_api_key = os.getenv('ANTHROPIC_API_KEY')
+#google_api_key = os.getenv('GOOGLE_API_KEY')
+
+if openai_api_key:
+    print(f"OpenAI API Key exists and begins {openai_api_key[:8]}")
+else:
+    print("OpenAI API Key not set")
+   
+#if anthropic_api_key:
+#    print(f"Anthropic API Key exists and begins {anthropic_api_key[:7]}")
+#else:
+#   print("Anthropic API Key not set")
+
+#if google_api_key:
+#    print(f"Google API Key exists and begins {google_api_key[:8]}")
+#else:
+#    print("Google API Key not set")
+
+-----------------------------------------
+
+def load_word_context(file_path):
+    # Open and read the Word document
+    doc = Document(file_path)
+    full_text = []
+    for para in doc.paragraphs:
+        full_text.append(para.text)
+    return "\n".join(full_text)
+
+# Set the path to your context document (#hardcoded line, needs to be changed)
+context_file_path = "/Users/prabhu/Documents/GitHub/aiworkshop/knowledge-base/webapplication/Retail_web_application.docx"
+
+# Load the application context from the Word document
+application_context = load_word_context(context_file_path)
+
+# Optionally, print the context to verify it's loaded correctly
+print(application_context)
+-----------------------------------
+
+from langchain.prompts import PromptTemplate
+
+test_case_prompt = PromptTemplate(
+    input_variables=["context", "user_query"],
+    template="""Using the following application context:
+
+{context}
+
+Generate detailed test cases for the scenario:
+{user_query}
+
+Include edge cases, validation scenarios, and error handling."""
+)
+
+------------------------------------------
+
+
+def generate_test_cases(user_query):
+    # Use the extracted application context from the Word document
+    return test_case_chain.run(context=application_context, user_query=user_query)
+
+-----------------------------------------
+
+import os
+from langchain_openai import OpenAI
+from langchain.chains import LLMChain
+from langchain.prompts import PromptTemplate
+
+# Ensure your API key is set in your environment
+# For example, you might set it externally or like this:
+# os.environ["OPENAI_API_KEY"] = "your-api-key-here"
+
+# Initialize the LLM using the environment variable directly
+llm = OpenAI(openai_api_key=os.environ["OPENAI_API_KEY"], temperature=0.7, max_tokens=500)
+
+# Define the prompt template
+test_case_prompt = PromptTemplate(
+    input_variables=["context", "user_query"],
+    template="""Using the following application context:
+
+{context}
+
+Generate detailed test cases for the scenario:
+{user_query}
+
+Include edge cases, validation scenarios, and error handling."""
+)
+
+# Create the chain
+test_case_chain = LLMChain(llm=llm, prompt=test_case_prompt)
+
+# Example function to generate test cases
+def generate_test_cases(user_query, context):
+    return test_case_chain.run(context=context, user_query=user_query)
+
+# Example usage (ensure you have loaded your application_context)
+sample_query = "Generate test cases for the product categories functionality of the retail web application."
+print(generate_test_cases(sample_query, application_context))
+
+----------------------------------------------
+
+
+iface = gr.Interface(
+    fn=generate_test_cases, 
+    inputs="text", 
+    outputs="text",
+    title="Test Cases Generator",
+    description="Generate test cases for the web application using the provided context."
+)
+
+iface.launch()
+
+------------------------------
